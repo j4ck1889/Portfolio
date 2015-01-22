@@ -1,0 +1,42 @@
+/*--------------------------------------------------*\
+		Home section
+\*--------------------------------------------------*/
+
+.content-home {
+	position: absolute;
+	bottom: 0;
+	left: 0;
+	right: 0;
+	background-color: $noir;
+	background-image: url(../images/ours.jpg);
+	background-size: cover;
+	height: 100%;
+	z-index: 0;
+	.logo {
+		margin-top: 120px;
+		img {
+			@include span (8);
+			@include squish (2,2);
+		}
+	}
+}
+
+@include breakpoint (768px) {
+	.content-home {
+		.logo {
+			@include span (8);
+			@include squish (2,2);
+			margin-top: 200px;
+		}
+	}
+}
+
+@include breakpoint (1024px) {
+	.content-home {
+		.logo {
+			margin-top: 280px;
+			@include span (4);
+			@include squish (4,4);
+		}
+	}
+}
