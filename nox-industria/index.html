@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nox Industria — La Dernière Garde</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Special+Elite&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0705; --ink: #2a1d10; --paper: #d8c6a0; --paper2: #c9b48a; --text: #eadfc4; --dim: #9d8f72;
+    --brass: #d9a441; --amber: #ffb347; --red: #b2321f; --red2: #7d1d12; --steel: #1c1f1d; --good: #86c46d; --warn: #e0a030; --bad: #d4452c;
+    --serif: "Cinzel", "Trajan Pro", Georgia, serif; --type: "Special Elite", "Courier New", monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font: 15px/1.5 var(--type); overflow: hidden; }
+  button { font: inherit; color: inherit; cursor: pointer; }
+  button:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+  .screen { position: fixed; inset: 0; display: none; }
+  .screen.on { display: block; }
+
+  /* ---------- Titre ---------- */
+  #title { background: #000 url(promo.webp) center / cover no-repeat; }
+  #title::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(0,0,0,.6), rgba(0,0,0,0) 62%); pointer-events: none; }
+  .tt { position: absolute; z-index: 1; left: 6vw; top: 50%; transform: translateY(-50%); max-width: min(560px, 46vw); }
+  .tt .eyebrow { font-family: var(--serif); letter-spacing: .5em; font-size: 13px; color: var(--brass); text-transform: uppercase; }
+  .tt h1 { font-family: var(--serif); font-weight: 700; margin: 6px 0 2px; font-size: clamp(38px, 6.4vw, 92px); line-height: .98; letter-spacing: .04em; text-transform: uppercase;
+           background: linear-gradient(180deg, #f6d68a, #b5702a 70%); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 4px 12px rgba(0,0,0,.7)); }
+  .tt h2 { font-family: var(--serif); font-weight: 500; margin: 0 0 22px; font-size: clamp(16px, 2vw, 26px); letter-spacing: .28em; text-transform: uppercase; color: var(--text); }
+  .tt p { margin: 0 0 26px; font-size: 17px; max-width: 30em; text-shadow: 0 2px 8px #000; }
+  .btn { background: linear-gradient(180deg, #3a2a18, #20160c); border: 1px solid var(--brass); color: var(--amber); padding: 11px 22px; letter-spacing: .12em; text-transform: uppercase; font-size: 14px; box-shadow: 0 0 0 1px #000 inset, 0 4px 14px rgba(0,0,0,.5); transition: .15s; }
+  .btn:hover:not(:disabled) { background: linear-gradient(180deg, #5a3d1d, #2c1d0e); color: #fff1cf; box-shadow: 0 0 18px rgba(255,179,71,.35); }
+  .btn:disabled { opacity: .4; cursor: not-allowed; }
+  .btn.red { border-color: #d65a40; color: #ffd8cc; background: linear-gradient(180deg, #7d1d12, #4a0f08); }
+  .tt small { display: block; margin-top: 22px; color: var(--dim); font-size: 12px; letter-spacing: .06em; }
+
+  /* ---------- Jeu ---------- */
+  #game { background: radial-gradient(ellipse at 40% 30%, #1a120b, #070504 75%); }
+  #g { position: absolute; inset: 0; display: grid; grid-template-columns: minmax(0, 1fr) 390px; grid-template-rows: 54px minmax(0, 1fr) 138px; }
+  #hud { grid-column: 1 / -1; display: flex; align-items: center; gap: 22px; padding: 0 18px; background: linear-gradient(180deg, #2a1d12, #130d08); border-bottom: 2px solid var(--brass); }
+  #hud .brand { font-family: var(--serif); letter-spacing: .24em; font-size: 14px; color: var(--brass); text-transform: uppercase; white-space: nowrap; }
+  #clock { font-family: var(--serif); font-size: 26px; color: var(--amber); letter-spacing: .08em; text-shadow: 0 0 12px rgba(255,179,71,.5); min-width: 92px; }
+  .meter { display: flex; flex-direction: column; line-height: 1.15; font-size: 11px; color: var(--dim); text-transform: uppercase; letter-spacing: .1em; }
+  .meter b { color: var(--text); font-size: 15px; letter-spacing: 0; font-weight: normal; }
+  .grow { flex: 1; }
+  #phoneBtn { position: relative; }
+  #phoneBtn.ring { animation: ring .5s infinite; border-color: #ff6a4a; color: #fff; }
+  @keyframes ring { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-4deg); } 75% { transform: rotate(4deg); } }
+
+  #stageWrap { display: flex; align-items: center; justify-content: center; min-height: 0; min-width: 0; padding: 10px 6px 0 12px; }
+  #stage { position: relative; width: min(100%, calc((100vh - 200px) * 1.7769)); aspect-ratio: 1672 / 941; background: #000 url(scene.webp) center / cover no-repeat; border: 2px solid #3a2a18; box-shadow: 0 0 40px rgba(0,0,0,.8), 0 0 0 1px #000; overflow: hidden; }
+  #stage::before { content: ""; position: absolute; inset: 0; background: radial-gradient(ellipse at 55% 55%, rgba(0,0,0,0) 40%, rgba(5,3,1,.55)); pointer-events: none; }
+  #stage::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(circle at 4% 80%, rgba(255,170,60,.18), transparent 22%), radial-gradient(circle at 85% 6%, rgba(255,190,90,.14), transparent 20%); animation: flick 3.4s infinite; mix-blend-mode: screen; }
+  @keyframes flick { 0%, 100% { opacity: .9; } 18% { opacity: .65; } 22% { opacity: 1; } 55% { opacity: .8; } 60% { opacity: 1; } }
+  .spot { position: absolute; transform: translate(-50%, -50%); z-index: 3; background: rgba(10,6,3,.72); border: 1px solid var(--brass); color: var(--amber); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; padding: 5px 10px; border-radius: 2px; white-space: nowrap; }
+  .spot:hover { background: rgba(60,38,14,.92); color: #fff; }
+  .spot.pulse { animation: pulse 1s infinite; border-color: #ff6a4a; color: #fff; }
+  @keyframes pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(255,106,74,.7); } 50% { box-shadow: 0 0 0 10px rgba(255,106,74,0); } }
+  .slot { position: absolute; transform: translate(-50%, -50%); width: 7%; aspect-ratio: 1; border: 1px dashed rgba(217,164,65,.35); border-radius: 50%; pointer-events: none; z-index: 1; }
+  .pt { position: absolute; transform: translate(-50%, -50%); width: 8.2%; min-width: 56px; z-index: 2; padding: 0; background: none; border: 0; text-align: center; transition: left .6s ease, top .6s ease; }
+  .pt .ring { display: block; width: 100%; aspect-ratio: 1; border-radius: 50%; padding: 4px; background: conic-gradient(var(--c, #86c46d) calc(var(--hp, 100) * 1%), rgba(0,0,0,.65) 0); box-shadow: 0 4px 14px rgba(0,0,0,.7); transition: .2s; }
+  .pt .face { display: block; width: 100%; height: 100%; border-radius: 50%; border: 2px solid #1a110a; background: #222 var(--pic) var(--bgx) var(--bgy) / var(--bgs) auto no-repeat; filter: sepia(.35) contrast(1.05); }
+  .pt:hover .ring, .pt.sel .ring { transform: scale(1.1); box-shadow: 0 0 0 3px var(--amber), 0 0 22px rgba(255,179,71,.7); }
+  .pt .nm { display: block; margin-top: 3px; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; background: rgba(8,5,2,.85); border: 1px solid #3a2a18; padding: 1px 4px; white-space: nowrap; }
+  .pt .tg { display: block; font-size: 10px; color: var(--amber); letter-spacing: .1em; text-transform: uppercase; text-shadow: 0 1px 3px #000; }
+  .pt.dead .face { filter: grayscale(1) brightness(.55); }
+  .pt.dead .ring { background: #000; }
+  .pt.arrive { animation: arrive .9s ease-out; }
+  @keyframes arrive { from { opacity: 0; transform: translate(-50%, -50%) scale(.6); } to { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
+  #flash { position: absolute; inset: 0; background: rgba(255,200,120,.0); pointer-events: none; z-index: 4; transition: background .5s; }
+  #flash.on { background: rgba(255,200,120,.3); transition: none; }
+
+  #side { padding: 10px 14px 0 6px; min-height: 0; overflow: auto; }
+  .fiche { position: relative; min-height: 100%; background: linear-gradient(160deg, var(--paper), var(--paper2)); color: var(--ink); padding: 22px 18px 18px; border: 1px solid #6a5632; box-shadow: 0 10px 30px rgba(0,0,0,.6), inset 0 0 40px rgba(110,80,30,.35); }
+  .fiche::before { content: ""; position: absolute; left: 50%; top: -9px; width: 56px; height: 20px; transform: translateX(-50%); background: linear-gradient(180deg, #e8c070, #8a6420); border-radius: 3px; box-shadow: 0 2px 4px rgba(0,0,0,.5); }
+  .fiche .hdr { display: flex; gap: 14px; align-items: center; }
+  .polaroid { flex: none; width: 92px; height: 92px; border: 4px solid #efe4c8; box-shadow: 0 2px 8px rgba(0,0,0,.4); background: #222 var(--pic) var(--bgx) var(--bgy) / var(--bgs) auto no-repeat; filter: grayscale(.85) sepia(.3) contrast(1.08); }
+  .fiche h2 { margin: 0; font-family: var(--serif); font-size: 21px; letter-spacing: .03em; line-height: 1.1; }
+  .fiche .role { font-size: 12px; opacity: .75; text-transform: uppercase; letter-spacing: .08em; margin-top: 2px; }
+  .fiche dl { margin: 14px 0 6px; font-size: 13px; }
+  .fiche dt { font-size: 10px; text-transform: uppercase; letter-spacing: .14em; opacity: .65; margin-top: 8px; }
+  .fiche dd { margin: 1px 0 0; }
+  .motif { font-weight: bold; border-bottom: 1px dotted rgba(0,0,0,.4); }
+  .tenue { height: 10px; background: rgba(0,0,0,.25); border: 1px solid rgba(0,0,0,.5); margin-top: 4px; }
+  .tenue i { display: block; height: 100%; background: var(--c, #86c46d); transition: width .4s; }
+  .learn { margin: 6px 0 0; padding: 0 0 0 16px; font-size: 12.5px; }
+  .learn li { margin: 2px 0; }
+  .fiche h3 { font-family: var(--serif); font-size: 12px; letter-spacing: .18em; text-transform: uppercase; margin: 14px 0 6px; padding-bottom: 3px; border-bottom: 1px solid rgba(0,0,0,.35); }
+  .acts { display: grid; gap: 6px; }
+  .act { text-align: left; background: rgba(42,29,16,.1); border: 1px solid rgba(42,29,16,.5); padding: 7px 10px; font-size: 13px; color: var(--ink); display: flex; justify-content: space-between; gap: 8px; }
+  .act:hover:not(:disabled) { background: rgba(42,29,16,.85); color: var(--paper); }
+  .act:disabled { opacity: .45; cursor: not-allowed; }
+  .act .cost { font-size: 11px; opacity: .7; white-space: nowrap; }
+  .act.done { text-decoration: line-through; opacity: .55; }
+  .empty { color: var(--ink); text-align: center; padding: 40px 10px; font-size: 14px; }
+  .empty b { font-family: var(--serif); font-size: 18px; display: block; margin-bottom: 8px; letter-spacing: .08em; }
+
+  #foot { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 1fr) 230px; gap: 14px; padding: 10px 18px 12px; background: linear-gradient(0deg, #130d08, #1d140c); border-top: 2px solid var(--brass); min-height: 0; }
+  #log { overflow-y: auto; font-size: 14px; line-height: 1.45; padding-right: 8px; scrollbar-color: #5a4220 #120c07; }
+  #log p { margin: 0 0 6px; animation: fadein .6s; }
+  #log .n { color: var(--text); } #log .s { color: var(--dim); font-style: italic; } #log .sys { color: var(--brass); } #log .bad { color: #ff8a70; } #log .say { color: var(--amber); }
+  @keyframes fadein { from { opacity: 0; transform: translateY(4px); } }
+  #ctl { display: flex; flex-direction: column; gap: 8px; justify-content: center; }
+  #pips { display: flex; gap: 6px; align-items: center; font-size: 11px; text-transform: uppercase; letter-spacing: .1em; color: var(--dim); }
+  .pip { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--brass); background: radial-gradient(circle at 35% 30%, #ffd07a, #b5702a); }
+  .pip.off { background: #120c07; }
+
+  /* ---------- Fenêtres (téléphone, cabine) ---------- */
+  .modal { position: fixed; inset: 0; z-index: 20; display: none; align-items: center; justify-content: center; background: rgba(4,2,1,.78); padding: 16px; }
+  .modal.on { display: flex; }
+  .card { width: min(640px, 100%); max-height: 94vh; overflow: auto; background: linear-gradient(170deg, #2b2016, #150e09); border: 2px solid var(--brass); box-shadow: 0 0 60px rgba(0,0,0,.9), 0 0 0 5px #0a0705, 0 0 0 6px #6a4a1c; padding: 26px 28px 24px; }
+  .card h3 { font-family: var(--serif); font-size: 15px; letter-spacing: .28em; text-transform: uppercase; color: var(--brass); margin: 0 0 14px; }
+  .card p { margin: 0 0 14px; }
+  .card .quote { border-left: 3px solid var(--red); padding-left: 14px; color: #ffe9c4; font-size: 16px; }
+  .choices { display: grid; gap: 8px; margin-top: 6px; }
+  .choice { text-align: left; background: rgba(0,0,0,.35); border: 1px solid #6a4a1c; padding: 10px 14px; color: var(--text); }
+  .choice:hover:not(:disabled) { border-color: var(--amber); background: rgba(90,60,20,.45); }
+  .choice:disabled { opacity: .45; cursor: not-allowed; }
+  .choice small { display: block; color: var(--dim); font-size: 12px; margin-top: 2px; }
+
+  /* ---------- Registre ---------- */
+  #reg { background: #050302 url(desk.webp) center / cover no-repeat; }
+  #reg::before { content: ""; position: absolute; inset: 0; background: rgba(6,3,1,.62); }
+  #regIn { position: absolute; inset: 0; overflow: auto; padding: 22px 24px 28px; }
+  #regIn > h2 { font-family: var(--serif); letter-spacing: .22em; text-transform: uppercase; color: var(--brass); margin: 0 0 4px; text-align: center; font-size: 22px; }
+  .rcard h2 { margin: 0; font-family: var(--serif); font-size: 18px; line-height: 1.1; }
+  .rcard .role { font-size: 12px; opacity: .75; text-transform: uppercase; letter-spacing: .08em; margin-top: 2px; }
+  .rcard .hdr { display: flex; gap: 12px; align-items: center; }
+  #regIn .sub { text-align: center; color: var(--text); margin: 0 auto 18px; max-width: 60ch; }
+  #cards { display: flex; gap: 22px; justify-content: center; flex-wrap: wrap; }
+  .rcard { position: relative; width: 290px; background: linear-gradient(160deg, var(--paper), var(--paper2)); color: var(--ink); padding: 20px 16px 16px; border: 1px solid #6a5632; box-shadow: 0 12px 30px rgba(0,0,0,.7), inset 0 0 40px rgba(110,80,30,.35); }
+  .rcard::before { content: ""; position: absolute; left: 50%; top: -9px; width: 56px; height: 20px; transform: translateX(-50%); background: linear-gradient(180deg, #e8c070, #8a6420); border-radius: 3px; }
+  .rcard .stamp { position: absolute; right: 12px; top: 122px; transform: rotate(-12deg) scale(1); border: 3px solid var(--red); color: var(--red); font-family: var(--serif); font-weight: 700; letter-spacing: .12em; font-size: 14px; padding: 3px 8px; text-transform: uppercase; opacity: 0; pointer-events: none; text-align: center; background: rgba(216,198,160,.55); }
+  .rcard .stamp.on { opacity: .95; animation: stamp .35s cubic-bezier(.2, 1.6, .4, 1); }
+  @keyframes stamp { from { transform: rotate(-12deg) scale(2.6); opacity: 0; } to { transform: rotate(-12deg) scale(1); opacity: .95; } }
+  .rcard .tag { font-size: 10px; letter-spacing: .14em; text-transform: uppercase; display: inline-block; padding: 1px 6px; border: 1px solid currentColor; margin-top: 4px; }
+  .rcard .orig { font-size: 12.5px; margin: 10px 0; }
+  .rcard .act .cost { font-size: 11px; }
+  .rcard .act.sel { background: var(--ink); color: var(--paper); }
+  #regFoot { max-width: 760px; margin: 22px auto 0; text-align: center; }
+  #regFoot label { display: block; margin-bottom: 14px; cursor: pointer; }
+  #regFoot input { accent-color: var(--brass); }
+
+  /* ---------- Épilogue ---------- */
+  #end { background: #000 url(promo.webp) center / cover no-repeat; overflow: auto; }
+  #end::before { content: ""; position: fixed; inset: 0; background: rgba(4,2,1,.8); }
+  #endIn { position: relative; max-width: 820px; margin: 0 auto; padding: 38px 22px 60px; }
+  #endIn .when { font-family: var(--serif); letter-spacing: .3em; color: var(--brass); font-size: 13px; text-transform: uppercase; }
+  #endIn h1 { font-family: var(--serif); text-transform: uppercase; letter-spacing: .08em; font-size: clamp(32px, 6vw, 58px); margin: 6px 0 14px; background: linear-gradient(180deg, #f6d68a, #b5702a 75%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  #endIn p { margin: 0 0 14px; font-size: 16px; }
+  #endIn h3 { font-family: var(--serif); font-size: 13px; letter-spacing: .24em; text-transform: uppercase; color: var(--brass); margin: 26px 0 10px; border-bottom: 1px solid #4a361a; padding-bottom: 5px; }
+  .fate { display: flex; gap: 14px; margin-bottom: 12px; align-items: flex-start; }
+  .fate .polaroid { width: 64px; height: 64px; border-width: 3px; }
+  .fate b { color: var(--amber); font-weight: normal; }
+  .fate .st { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--dim); }
+  .next li { margin-bottom: 8px; }
+  #endIn .row { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 28px; }
+
+  @media (max-width: 900px) {
+    html, body { overflow: auto; }
+    #g { position: static; display: block; min-height: 100vh; }
+    #hud { flex-wrap: wrap; padding: 8px 12px; height: auto; gap: 12px; }
+    #stage { width: 100%; }
+    #stageWrap { padding: 8px; }
+    #side { padding: 8px; }
+    #foot { display: block; }
+    #log { max-height: 180px; margin-bottom: 10px; }
+    #game.screen { position: absolute; min-height: 100%; }
+    .tt { max-width: 88vw; left: 6vw; top: auto; bottom: 8vh; transform: none; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+
+<!-- TITRE -->
+<section id="title" class="screen on">
+  <div class="tt">
+    <div class="eyebrow">Usines Verticales · Palier 12</div>
+    <h1>Nox Industria</h1>
+    <h2>La Dernière Garde</h2>
+    <p>Deux lits. Un dernier ascenseur. Qui fais-tu monter&nbsp;?</p>
+    <button class="btn" id="startBtn">Commencer la garde</button>
+    <small>Prototype jouable · la garde du 184ᵉ · 10 à 15 minutes · souris uniquement</small>
+  </div>
+</section>
+
+<!-- JEU -->
+<section id="game" class="screen">
+  <div id="g">
+    <header id="hud">
+      <div class="brand">Nurse Jack · Infirmerie du Palier 12</div>
+      <div id="clock">22:00</div>
+      <div class="meter">Lits<b id="mBeds">2 / 2</b></div>
+      <div class="meter">Oxygène<b id="mO2">2</b></div>
+      <div class="meter">Pansements<b id="mBan">2</b></div>
+      <div class="meter">Antidote<b id="mAnt">1</b></div>
+      <div class="grow"></div>
+      <button class="btn" id="phoneBtn" title="Téléphone du bureau">☎ Téléphone</button>
+    </header>
+    <div id="stageWrap">
+      <div id="stage">
+        <div id="slots"></div>
+        <button class="spot" id="spotElev" style="left:87%;top:30%">Ascenseur</button>
+        <button class="spot" id="spotReg" style="left:35%;top:92%">Registre</button>
+        <div id="flash"></div>
+      </div>
+    </div>
+    <aside id="side"><div class="fiche" id="fiche"></div></aside>
+    <footer id="foot">
+      <div id="log"></div>
+      <div id="ctl">
+        <div id="pips"></div>
+        <button class="btn red" id="endHour">Valider l'heure</button>
+        <div style="font-size:11px;color:var(--dim)">Interroger est gratuit. Chaque prise en charge coûte un geste.</div>
+      </div>
+    </footer>
+  </div>
+</section>
+
+<!-- TÉLÉPHONE / CABINE -->
+<div class="modal" id="mPhone"><div class="card">
+  <h3>☎ Le téléphone du bureau</h3>
+  <p>Il vibre sur le plateau, puis se met à sonner. Au bout du fil, le grésillement d'un combiné gras.</p>
+  <p class="quote">« Infirmier, ici Crane. J'apprends que trois des miens sont chez vous. Vous les remettez au poste avant la relève et vous corrigez leurs fiches : malaise, fatigue, chute. Et la dernière cabine reste libre&nbsp;: l'inspecteur Voss monte. Compris&nbsp;? »</p>
+  <div class="choices" id="phoneChoices"></div>
+</div></div>
+
+<div class="modal" id="mCab"><div class="card">
+  <h3>La dernière cabine</h3>
+  <p id="cabText"></p>
+  <div class="choices" id="cabChoices"></div>
+</div></div>
+
+<!-- REGISTRE -->
+<section id="reg" class="screen">
+  <div id="regIn">
+    <h2>Clôture du registre</h2>
+    <p class="sub">02&nbsp;h&nbsp;00 approche. Tampon en main, tu décides de ce que la direction saura. Ce que tu consignes ici ne se rattrape pas.</p>
+    <div id="cards"></div>
+    <div id="regFoot">
+      <label id="dblLabel"><input type="checkbox" id="dbl"> Glisser un double carbone sous le plateau du bureau <span style="color:var(--dim)">(risqué si l'inspecteur fouille)</span></label>
+      <button class="btn red" id="closeBtn" disabled>Clore la garde</button>
+    </div>
+  </div>
+</section>
+
+<!-- ÉPILOGUE -->
+<section id="end" class="screen"><div id="endIn"></div></section>
+
+<script>
+'use strict';
+(() => {
+const $ = s => document.querySelector(s);
+const HOURS = ['22:00', '23:00', '00:00', '01:00'];
+const IMG = 'desk.webp';
+const FACE = { odile: { cx: 783, cy: 497, s: 200 }, gaspard: { cx: 362, cy: 497, s: 170 }, bruno: { cx: 1238, cy: 496, s: 170 } };
+const faceVars = id => { const f = FACE[id]; return `--pic:url(${IMG});--bgs:${(1672 / f.s * 100).toFixed(1)}%;--bgx:${((f.cx - f.s / 2) / (1672 - f.s) * 100).toFixed(2)}%;--bgy:${((f.cy - f.s / 2) / (941 - f.s) * 100).toFixed(2)}%`; };
+const BEDS = [{ x: 33, y: 60 }, { x: 49, y: 47 }];
+const WAITS = [{ x: 85, y: 68 }, { x: 70, y: 72 }, { x: 58, y: 80 }];
+
+const DATA = {
+  odile: { f: true, name: 'Odile Varn', first: 'Odile', role: 'Ouvrière · 184ᵉ étage', motif: 'Malaise isolé', note: 'Fiche tamponnée à 21 h 42', hp: 70, decay: 10, good: 'o2',
+    arrive: 'La grille claque. Une ouvrière en foulard s\'appuie au montant, la main sur la poitrine. « C\'est rien, dit-elle. C\'est ce qu\'ils ont écrit, en tout cas. »',
+    truth: 'Exposition à la brume verte du 184ᵉ (soupape ouverte sur ordre).',
+    asks: [
+      { id: 'q1', label: '« Que s\'est-il passé au 184ᵉ ? »', a: '« Une soupape a craché du vert. On a toussé tous ensemble, puis ils ont fermé l\'étage. Moi, je suis juste tombée la première. »', learn: 'Une brume verte s\'est échappée d\'une soupape du 184ᵉ.', flag: 'mist' },
+      { id: 'q2', label: '« Qui est resté en bas ? »', a: '« Tobias. Il tenait encore debout quand j\'ai pris la cabine. Si elle redescend, envoie-la, infirmier. Je t\'en supplie. »', learn: 'Son collègue Tobias est resté coincé au 184ᵉ.', flag: 'tobias' },
+      { id: 'p', label: 'Fouiller sa veste', narr: true, a: 'Dans sa poche intérieure : deux fiches de collègues, tamponnées à la même minute — 21 h 42 — avant que personne ne les ait examinés.', learn: 'Deux fiches tamponnées avant tout examen : même minute, même main.', flag: 'stamps' }
+    ] },
+  gaspard: { name: 'Gaspard Roux', first: 'Gaspard', role: 'Chauffeur de chaudière', motif: 'Fatigue chronique — retour au poste conseillé', note: 'Rédigée par le guichet du palier', hp: 50, decay: 14, good: 'o2',
+    arrive: 'Un homme aux lunettes de soudeur remontées sur le front tousse dans son poing. Le sifflement de sa poitrine répond à celui des tuyaux.',
+    truth: 'Intoxication par la brume verte ; ordre d\'ouverture donné par le contremaître.',
+    asks: [
+      { id: 'q1', label: '« Depuis quand tousses-tu ? »', a: '« Depuis ce soir. Vingt ans de chaudières, jamais ça. Le vert m\'a pris au fond des poumons. »', learn: 'Toux apparue ce soir, après la brume verte.', flag: 'mist' },
+      { id: 'q2', label: '« Qui a donné l\'ordre d\'ouvrir ? »', a: '« Crane. Le contremaître. Il a fait verrouiller l\'étage de l\'extérieur. Il y a encore des gars dedans. »', learn: 'Le contremaître Crane a ordonné l\'ouverture, puis le verrouillage du 184ᵉ.', flag: 'order' },
+      { id: 'p', label: 'Fouiller sa veste', narr: true, a: 'Un chiffon taché de vert, poisseux, qui sent la menthe et le métal. Un jeton de relève en cuivre : 184.', learn: 'Un chiffon imprégné de la même substance verte.', flag: 'rag' }
+    ] },
+  bruno: { name: 'Bruno Hale', first: 'Bruno', role: 'Manœuvre · 184ᵉ étage', motif: 'Chute de plain-pied — plaie légère', note: '« À maintenir si on demande »', hp: 40, decay: 17, good: 'bandage',
+    arrive: 'Un homme barbu, casquette vissée, se laisse tomber sur le banc en serrant ses mains contre lui. Des cloques luisent entre ses doigts.',
+    truth: 'Brûlures chimiques par la brume verte ; motif « chute » imposé.',
+    asks: [
+      { id: 'q1', label: '« Tu es tombé ? »', a: '« Pas tombé. Brûlé. Les mains, la gorge. Le même vert que les autres. On m\'a dit de dire "chute". »', learn: 'Brûlures par la brume ; le motif « chute » lui a été imposé.', flag: 'mist' },
+      { id: 'q2', label: '« Qui t\'a dit de dire ça ? »', a: '« Un homme de l\'inspecteur Voss, au guichet du palier. Il avait déjà écrit ma fiche avant que j\'ouvre la bouche. »', learn: 'Un homme de l\'inspecteur Voss avait écrit sa fiche à l\'avance.', flag: 'voss' },
+      { id: 'p', label: 'Fouiller sa veste', narr: true, a: 'Un reçu de guichet froissé : « Motif : chute. Ne pas modifier. — V. » L\'encre est encore fraîche.', learn: 'Un reçu signé « V. » impose le motif « chute ».', flag: 'receipt' }
+    ] }
+};
+const SUP = { o2: { n: 'Inhalateur d\'oxygène', k: 'o2' }, bandage: { n: 'Pansement brûlures', k: 'bandage' }, antidote: { n: 'Antidote de la brume', k: 'antidote' } };
+
+let st;
+const fresh = () => ({ h: 0, gestes: 2, pats: {}, sup: { o2: 2, bandage: 2, antidote: 1 }, beds: [null, null], flags: {}, phone: null, cabin: null, tobias: false, dbl: false, regs: {}, sel: null, lock: false, ended: false });
+
+// ---------------------------------------------------------------------
+//  Sons (synthèse WebAudio)
+// ---------------------------------------------------------------------
+let AC = null, master = null, nb = null;
+function audio() {
+  if (AC) { if (AC.state === 'suspended') AC.resume(); return; }
+  try {
+    AC = new (window.AudioContext || window.webkitAudioContext)(); master = AC.createGain(); master.gain.value = .5; master.connect(AC.destination);
+    nb = AC.createBuffer(1, AC.sampleRate, AC.sampleRate); const d = nb.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    const o = AC.createOscillator(), o2 = AC.createOscillator(), lp = AC.createBiquadFilter(), g = AC.createGain(); o.type = o2.type = 'sawtooth'; o.frequency.value = 52; o2.frequency.value = 53.1; lp.type = 'lowpass'; lp.frequency.value = 130; g.gain.value = .05;
+    o.connect(lp); o2.connect(lp); lp.connect(g); g.connect(master); o.start(); o2.start();
+  } catch (e) { AC = null; }
+}
+function noise(dur, f0, f1, gain, type = 'lowpass', delay = 0) { if (!AC) return; const t = AC.currentTime + delay, s = AC.createBufferSource(); s.buffer = nb; s.loop = true; const f = AC.createBiquadFilter(); f.type = type; f.frequency.setValueAtTime(f0, t); f.frequency.exponentialRampToValueAtTime(Math.max(30, f1), t + dur); const g = AC.createGain(); g.gain.setValueAtTime(gain, t); g.gain.exponentialRampToValueAtTime(.001, t + dur); s.connect(f); f.connect(g); g.connect(master); s.start(t); s.stop(t + dur + .05); }
+function tone(f0, f1, dur, gain, type = 'sine', delay = 0) { if (!AC) return; const t = AC.currentTime + delay, o = AC.createOscillator(); o.type = type; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(Math.max(30, f1), t + dur); const g = AC.createGain(); g.gain.setValueAtTime(gain, t); g.gain.exponentialRampToValueAtTime(.001, t + dur); o.connect(g); g.connect(master); o.start(t); o.stop(t + dur + .05); }
+const SFX = {
+  grille: () => { noise(.5, 3000, 400, .6, 'bandpass'); tone(200, 90, .25, .4, 'square'); noise(.25, 2000, 300, .5, 'bandpass', .35); tone(160, 70, .2, .4, 'square', .35); },
+  stamp: () => { tone(110, 40, .3, .9); noise(.18, 1200, 200, .7); },
+  ring: () => { for (let i = 0; i < 4; i++) { tone(1400, 1400, .1, .2, 'square', i * .22); tone(1100, 1100, .1, .2, 'square', i * .22 + .1); } },
+  click: () => tone(800, 500, .05, .15, 'square'),
+  care: () => { tone(500, 700, .12, .2, 'triangle'); noise(.2, 3000, 800, .2, 'highpass'); },
+  bad: () => { tone(140, 60, .4, .4, 'sawtooth'); },
+  clack: () => { noise(.18, 2500, 300, .6, 'bandpass'); tone(150, 70, .15, .4, 'square'); }
+};
+
+// ---------------------------------------------------------------------
+//  Journal
+// ---------------------------------------------------------------------
+function log(text, cls = 'n') { const p = document.createElement('p'); p.className = cls; p.textContent = text; const L = $('#log'); L.appendChild(p); L.scrollTop = L.scrollHeight; }
+
+// ---------------------------------------------------------------------
+//  Mise en place
+// ---------------------------------------------------------------------
+function show(id) { document.querySelectorAll('.screen').forEach(s => s.classList.toggle('on', s.id === id)); }
+function newGame() {
+  audio(); st = fresh(); $('#log').innerHTML = ''; $('#slots').innerHTML = ''; document.querySelectorAll('.pt').forEach(e => e.remove());
+  show('game');
+  [...BEDS, ...WAITS].forEach(s => { const d = document.createElement('div'); d.className = 'slot'; d.style.left = s.x + '%'; d.style.top = s.y + '%'; $('#slots').appendChild(d); });
+  log('Nuit de garde. Les Usines Verticales ronflent derrière la vitre ; ici, deux lits, un plateau d\'instruments et un registre à tamponner.', 's');
+  log('Clique sur un patient pour lire sa fiche. Interroger ne coûte rien. Chaque prise en charge coûte un geste ; quand tu valides l\'heure, la garde avance — et ceux qui attendent s\'aggravent.', 'sys');
+  startHour(0);
+}
+function present() { return Object.values(st.pats).filter(p => !p.transferred); }
+function arrive(id) {
+  const d = DATA[id], p = { id, d, hp: d.hp, bed: null, dead: false, transferred: false, mul: 1, asked: {}, learned: [], wait: null, treated: [] };
+  const used = new Set(Object.values(st.pats).map(q => q.wait)); p.wait = [0, 1, 2].find(i => !used.has(i)); st.pats[id] = p;
+  SFX.grille(); const f = $('#flash'); f.classList.add('on'); setTimeout(() => f.classList.remove('on'), 90);
+  log(d.arrive, 's'); log(`${d.name} — fiche : « ${d.motif} ».`, 'sys');
+  return p;
+}
+function startHour(h) {
+  st.h = h; st.gestes = 2;
+  if (h === 0) arrive('odile');
+  if (h === 1) { log('23 h 00. La cabine redescend sans qu\'on l\'ait appelée, et revient chargée.', 's'); arrive('gaspard'); arrive('bruno'); log('Trois fiches, trois histoires qui se recoupent, et deux lits seulement.', 's'); }
+  if (h === 2) { log('00 h 00. Sur le bureau, le téléphone se met à vibrer.', 's'); render(); openPhone(); return; }
+  if (h === 3) { log('01 h 00. La grille claque une dernière fois. La cabine est là, vide, tout près de repartir.', 's'); render(); openCabin(); return; }
+  render();
+}
+
+// ---------------------------------------------------------------------
+//  Rendu
+// ---------------------------------------------------------------------
+const hpColor = hp => hp > 60 ? '#86c46d' : hp > 30 ? '#e0a030' : '#d4452c';
+function render() {
+  $('#clock').textContent = HOURS[st.h];
+  const freeBeds = st.beds.filter(b => b === null).length;
+  $('#mBeds').textContent = `${freeBeds} / 2`; $('#mO2').textContent = st.sup.o2; $('#mBan').textContent = st.sup.bandage; $('#mAnt').textContent = st.flags.mist ? st.sup.antidote : '?';
+  $('#pips').innerHTML = 'Gestes ' + [0, 1].map(i => `<span class="pip ${i < st.gestes ? '' : 'off'}"></span>`).join('');
+  $('#phoneBtn').classList.toggle('ring', st.h === 2 && st.phone === null);
+  $('#spotElev').classList.toggle('pulse', st.h === 3 && st.cabin === null);
+  $('#spotReg').style.display = 'none';
+  for (const p of Object.values(st.pats)) {
+    let el = document.getElementById('pt-' + p.id);
+    if (!el) { el = document.createElement('button'); el.id = 'pt-' + p.id; el.className = 'pt arrive'; el.setAttribute('aria-label', p.d.name); el.addEventListener('click', () => { SFX.click(); st.sel = p.id; render(); }); $('#stage').appendChild(el); }
+    if (p.transferred) { el.style.display = 'none'; continue; }
+    const pos = p.bed !== null ? BEDS[p.bed] : WAITS[p.wait];
+    el.style.left = pos.x + '%'; el.style.top = pos.y + '%';
+    el.className = 'pt' + (st.sel === p.id ? ' sel' : '') + (p.dead ? ' dead' : '');
+    el.innerHTML = `<span class="ring" style="--hp:${Math.max(0, p.hp)};--c:${hpColor(p.hp)}"><span class="face" style="${faceVars(p.id)}"></span></span><span class="nm">${p.d.first}</span>${p.dead ? '<span class="tg">décédé</span>' : p.bed !== null ? `<span class="tg">lit ${p.bed + 1}</span>` : ''}`;
+  }
+  renderFiche(); $('#endHour').disabled = st.lock;
+}
+function renderFiche() {
+  const F = $('#fiche'), p = st.sel && st.pats[st.sel];
+  if (!p) { F.innerHTML = '<div class="empty"><b>Fiche du patient</b>Choisis quelqu\'un sur la carte pour lire sa fiche, l\'interroger et décider de ses soins.</div>'; return; }
+  const d = p.d, status = p.dead ? 'Décédé' : p.transferred ? 'Évacué' : p.hp > 60 ? 'Stable' : p.hp > 30 ? 'Fragile' : 'Critique';
+  const asks = d.asks.map(a => `<button class="act ${p.asked[a.id] ? 'done' : ''}" data-ask="${a.id}" ${p.dead ? 'disabled' : ''}><span>${a.label}</span><span class="cost">gratuit</span></button>`).join('');
+  const sup = (k, label) => `<button class="act" data-care="${k}" ${p.dead || st.gestes < 1 || st.sup[k] < 1 || (k === 'antidote' && !st.flags.mist) ? 'disabled' : ''}><span>${label}</span><span class="cost">${k === 'antidote' && !st.flags.mist ? 'cause inconnue' : `×${st.sup[k]} · 1 geste`}</span></button>`;
+  const bedBtns = p.bed !== null ? `<button class="act" data-free="1"><span>Libérer le lit ${p.bed + 1}</span><span class="cost">gratuit</span></button>` :
+    [0, 1].map(i => `<button class="act" data-bed="${i}" ${p.dead || st.beds[i] !== null || st.gestes < 1 ? 'disabled' : ''}><span>Installer au lit ${i + 1}</span><span class="cost">${st.beds[i] !== null ? 'occupé' : '1 geste'}</span></button>`).join('');
+  F.innerHTML = `<div class="hdr"><div class="polaroid" style="${faceVars(p.id)}"></div><div><h2>${d.name}</h2><div class="role">${d.role}</div></div></div>
+  <dl><dt>Motif inscrit</dt><dd class="motif">${d.motif}</dd><dd style="font-size:12px;opacity:.7">${d.note}</dd>
+  <dt>Tenue — ${status}</dt><dd><div class="tenue"><i style="width:${Math.max(0, p.hp)}%;--c:${hpColor(p.hp)}"></i></div></dd>
+  <dt>Ce que tu as constaté</dt><dd>${p.learned.length ? '<ul class="learn">' + p.learned.map(l => `<li>${l}</li>`).join('') + '</ul>' : '<span style="opacity:.6">Rien pour l\'instant.</span>'}</dd></dl>
+  <h3>Interroger</h3><div class="acts">${asks}</div>
+  ${p.dead ? '' : `<h3>Prendre en charge</h3><div class="acts">${bedBtns}${sup('o2', 'Inhalateur d\'oxygène')}${sup('bandage', 'Pansement brûlures')}${sup('antidote', 'Antidote de la brume')}</div>`}`;
+  F.querySelectorAll('[data-ask]').forEach(b => b.onclick = () => ask(p, b.dataset.ask));
+  F.querySelectorAll('[data-care]').forEach(b => b.onclick = () => care(p, b.dataset.care));
+  F.querySelectorAll('[data-bed]').forEach(b => b.onclick = () => bed(p, +b.dataset.bed));
+  F.querySelectorAll('[data-free]').forEach(b => b.onclick = () => { st.beds[p.bed] = null; log(`Tu libères le lit ${p.bed + 1}.`, 's'); p.bed = null; render(); });
+}
+
+// ---------------------------------------------------------------------
+//  Actions
+// ---------------------------------------------------------------------
+function ask(p, id) {
+  const a = p.d.asks.find(x => x.id === id); SFX.click();
+  if (p.asked[id]) { log(`${p.d.first} n'a rien à ajouter.`, 's'); return; }
+  p.asked[id] = true; p.learned.push(a.learn); st.flags[a.flag] = true;
+  log(a.narr ? a.a : `${p.d.first} : ${a.a}`, a.narr ? 's' : 'say');
+  if (a.flag === 'mist' && !st.mistNoticed) { st.mistNoticed = true; log('Une brume verte, des brûlures, des poumons attaqués : la réserve contient un antidote pour ça. Une seule dose.', 'sys'); }
+  render();
+}
+function bed(p, i) {
+  if (st.gestes < 1) return; st.gestes--; st.beds[i] = p.id; p.bed = i; SFX.care();
+  log(`Tu installes ${p.d.name} au lit ${i + 1}. Au lit, le corps s'use moins vite.`, 'n'); render();
+}
+function care(p, k) {
+  if (st.gestes < 1 || st.sup[k] < 1) return; st.gestes--; st.sup[k]--; SFX.care();
+  if (k === 'antidote') { p.hp = Math.min(100, p.hp + 55); p.mul = 0; log(`Tu injectes l'antidote à ${p.d.name}. La couleur lui revient aux joues ; l'intoxication s'arrête.`, 'n'); }
+  else if (p.d.good === k) { p.hp = Math.min(100, p.hp + 30); p.mul *= .5; log(k === 'o2' ? `${p.d.first} respire à pleins poumons dans l'inhalateur. Ça tient.` : `Tu pauses les pansements sur les brûlures de ${p.d.first}. Il serre les dents, puis souffle.`, 'n'); }
+  else { p.hp = Math.min(100, p.hp + 8); log(`Ce n'est pas ce qu'il lui faut vraiment. ${p.d.first} en profite un peu, sans plus.`, 's'); }
+  render();
+}
+function endHour() {
+  if (st.lock) return; SFX.click();
+  for (const p of present()) {
+    if (p.dead) continue;
+    p.hp -= p.d.decay * p.mul * (p.bed !== null ? .4 : 1);
+    if (p.hp <= 0) { p.hp = 0; p.dead = true; if (p.bed !== null) { st.beds[p.bed] = null; } SFX.bad(); log(`${p.d.name} s'éteint ${p.bed !== null ? 'dans son lit' : 'sur le banc'}, sans un bruit. Tu n'as rien pu faire de plus.`, 'bad'); }
+    else if (p.hp < 30) log(`${p.d.first} respire par à-coups. Sans soin, ${p.d.f ? 'elle' : 'il'} ne tiendra plus longtemps.`, 'bad');
+  }
+  if (st.h < 3) startHour(st.h + 1); else openRegistre();
+}
+
+// ---------------------------------------------------------------------
+//  Téléphone & cabine
+// ---------------------------------------------------------------------
+function openPhone() {
+  st.lock = true; SFX.ring(); $('#mPhone').classList.add('on');
+  const C = [
+    { k: 'obey', t: '« Bien reçu, contremaître. »', s: 'Tu évites l\'orage. Ta conscience, moins.', r: 'Crane : « Bon infirmier. » Le combiné se tait. Tu sens la sueur froide dans ton col.' },
+    { k: 'defy', t: '« Ce sont des patients, pas des ouvriers. »', s: 'Tu t\'attires la colère de la direction.', r: 'Crane : « Vous le regretterez. » Un clic sec. La ligne meurt.' },
+    { k: 'stall', t: '« Je note. Je vérifie leur état d\'abord. »', s: 'Tu gagnes du temps, sans te mouiller.', r: 'Crane : « Vous avez jusqu\'à la relève. » Il raccroche sans attendre ta réponse.' }
+  ];
+  $('#phoneChoices').innerHTML = C.map(c => `<button class="choice" data-k="${c.k}">${c.t}<small>${c.s}</small></button>`).join('');
+  $('#phoneChoices').querySelectorAll('button').forEach(b => b.onclick = () => { const c = C.find(x => x.k === b.dataset.k); st.phone = c.k; SFX.click(); log(c.r, 'say'); $('#mPhone').classList.remove('on'); st.lock = false; render(); });
+}
+function openCabin() {
+  st.lock = true; SFX.grille(); $('#mCab').classList.add('on');
+  const live = present().filter(p => !p.dead);
+  $('#cabText').textContent = 'La dernière cabine s\'ouvre, vide. Une seule place. Elle repartira dans l\'heure, pas plus. Vers le haut, le Palier 40 et un vrai hôpital ; vers le bas, le 184ᵉ, où quelqu\'un attend peut-être encore.';
+  const opts = live.map(p => ({ k: 'transfer:' + p.id, t: `Transférer ${p.d.name} au Palier 40`, s: `Hors de danger là-haut. Tenue actuelle : ${Math.round(p.hp)} %. La cabine ne redescendra pas.` }));
+  if (st.flags.tobias) opts.push({ k: 'fetch', t: 'Envoyer la cabine chercher Tobias au 184ᵉ', s: 'Odile te l\'a demandé. L\'inspecteur Voss trouvera le quai vide.' });
+  else opts.push({ k: 'fetch-locked', t: 'Envoyer la cabine vers le bas ?', s: 'Tu ne sais pas qui attend là-bas. Interroge tes patients pour le savoir.', off: true });
+  opts.push({ k: 'free', t: 'Garder la cabine à quai, libre pour l\'inspecteur', s: 'Tu fais ce que Crane a demandé. Personne ne monte, personne ne descend.' });
+  $('#cabChoices').innerHTML = opts.map(o => `<button class="choice" data-k="${o.k}" ${o.off ? 'disabled' : ''}>${o.t}<small>${o.s}</small></button>`).join('');
+  $('#cabChoices').querySelectorAll('button').forEach(b => b.onclick = () => chooseCabin(b.dataset.k));
+}
+function chooseCabin(k) {
+  SFX.clack(); st.cabin = k; $('#mCab').classList.remove('on'); st.lock = false;
+  if (k.startsWith('transfer:')) { const p = st.pats[k.split(':')[1]]; p.transferred = true; if (p.bed !== null) { st.beds[p.bed] = null; p.bed = null; } log(`Tu aides ${p.d.name} à monter dans la cabine. La grille se referme sur son regard. Le moteur gémit vers le haut.`, 'n'); if (st.sel === p.id) st.sel = null; }
+  else if (k === 'fetch') { st.tobias = true; log('Tu enfonces le levier vers le bas. La cabine s\'enfonce dans le vacarme des étages, vers le 184ᵉ et ce qu\'il en reste.', 'n'); }
+  else log('Tu laisses la cabine à quai, grille ouverte, lumière allumée. Elle attend quelqu\'un d\'autre que tes patients.', 'n');
+  render();
+}
+
+// ---------------------------------------------------------------------
+//  Registre
+// ---------------------------------------------------------------------
+const REG = {
+  fidele: { t: 'Consigner la vérité', tag: 'Fidèle' },
+  conforme: { t: 'Garder le motif d\'origine', tag: 'Conforme' },
+  corrige: { t: 'Corriger comme demandé', tag: 'Corrigé' }
+};
+function openRegistre() {
+  st.lock = true; SFX.grille(); show('reg'); st.regs = {};
+  const ids = Object.keys(st.pats);
+  $('#cards').innerHTML = ids.map(id => { const p = st.pats[id], d = p.d, knows = p.learned.length > 0, state = p.dead ? 'Décédé' : p.transferred ? 'Évacué' : 'Présent';
+    return `<div class="rcard" data-id="${id}"><div class="stamp"></div><div class="hdr"><div class="polaroid" style="${faceVars(id)}"></div><div><h2 style="font-size:18px">${d.name}</h2><div class="role">${d.role}</div><span class="tag">${state}</span></div></div>
+    <div class="orig"><b>Fiche d'origine :</b><br>« ${d.motif} »</div>
+    <div class="acts"><button class="act" data-r="fidele" ${knows ? '' : 'disabled'}><span>${REG.fidele.t}</span><span class="cost">${knows ? '' : 'rien à écrire'}</span></button>
+    <button class="act" data-r="conforme"><span>${REG.conforme.t}</span></button>
+    <button class="act" data-r="corrige"><span>${REG.corrige.t}</span></button></div></div>`; }).join('');
+  document.querySelectorAll('.rcard').forEach(c => c.querySelectorAll('[data-r]').forEach(b => b.onclick = () => {
+    const id = c.dataset.id; st.regs[id] = b.dataset.r; SFX.stamp();
+    c.querySelectorAll('[data-r]').forEach(x => x.classList.toggle('sel', x === b)); const s = c.querySelector('.stamp'); s.textContent = REG[b.dataset.r].tag; s.classList.remove('on'); void s.offsetWidth; s.classList.add('on');
+    $('#closeBtn').disabled = Object.keys(st.regs).length < ids.length;
+  }));
+  const known = Object.values(st.pats).some(p => p.learned.length > 0);
+  $('#dbl').checked = false; $('#dbl').disabled = !known; $('#dblLabel').style.opacity = known ? 1 : .5; $('#closeBtn').disabled = true;
+}
+
+// ---------------------------------------------------------------------
+//  Épilogue
+// ---------------------------------------------------------------------
+function conclude() {
+  st.dbl = $('#dbl').checked; SFX.grille(); show('end');
+  const ps = Object.values(st.pats), dead = ps.filter(p => p.dead).length, regs = ps.map(p => st.regs[p.id]);
+  const fid = regs.filter(r => r === 'fidele').length, cor = regs.filter(r => r === 'corrige').length;
+  const alive = ps.filter(p => !p.dead).length, transferred = ps.filter(p => p.transferred && !p.dead);
+  const witness = st.dbl || st.tobias || transferred.some(p => st.regs[p.id] === 'fidele');
+  let end;
+  if (dead >= 2) end = 'blank'; else if (cor >= 2) end = 'silence'; else if (fid >= 2 && witness) end = 'proof'; else end = 'margin';
+  const E = {
+    blank: { t: 'Fiche blanche', p: 'À l\'aube, deux lits sont défaits et le registre est presque vide. Tu as fait ce que tu pouvais avec ce qu\'on t\'avait laissé, et ce n\'était pas assez. Il ne reste de cette garde que des noms qu\'on ne prononcera plus.' },
+    silence: { t: 'Le silence', p: 'Les fiches sont propres, les tampons nets, les lignes bien droites. Personne ne viendra te demander ce que tu as écrit : tout le monde sait déjà que tu as écrit ce qu\'on attendait. Le 184ᵉ n\'a jamais existé cette nuit.' },
+    proof: { t: 'La preuve', p: 'Tu as écrit ce que tu avais vu. Seul, ça n\'aurait rien changé. Mais ce que tu as consigné a croisé un témoin, un double, une cabine qui a monté ou descendu quelqu\'un. À l\'étage au-dessus, quelqu\'un va lire ton écriture.' },
+    margin: { t: 'Dans la marge', p: 'Tu n\'as ni tout dit, ni tout tu. Une fiche honnête, une complaisante, une ligne ambiguë entre les deux. Voss garde ton nom dans un coin de carnet, Crane aussi. Dans la marge de ce registre, il reste de quoi continuer — ou de quoi tomber.' }
+  }[end];
+  // scène 02 h 00
+  let voss;
+  if (st.cabin === 'free') voss = 'Voss sort de la cabine seul, gants gris, souliers propres. Il lit les fiches debout, sans s\'asseoir, sans rien toucher du bout des doigts.';
+  else if (st.cabin === 'fetch') voss = 'Le quai est vide : Voss monte par l\'escalier de service, essoufflé, furieux. Derrière lui, la cabine remonte enfin du 184ᵉ, avec Tobias dedans.';
+  else voss = 'Voss monte à pied par l\'escalier de service. Le quai est vide, la cabine partie vers le Palier 40. Il en fait la remarque, d\'un ton parfaitement poli.';
+  if (cor >= 2) voss += ' Il referme le registre avec soin. « Nous nous comprenons, infirmier. »';
+  else if (fid >= 1) voss += ' Il s\'arrête sur une ligne et relève la tête. Il note ton matricule, très lentement.';
+  if (st.dbl) voss += (st.cabin === 'free' ? ' Il tapote le plateau du bureau, deux fois, puis passe son chemin.' : ' Il ne regarde pas sous le plateau.');
+  const fate = p => {
+    const r = st.regs[p.id], e = p.d.f ? 'e' : '', P = p.d.f ? 'Elle' : 'Il';
+    if (p.dead) return [`<b>${p.d.name}</b> ne s'est pas relevé${e}.`, r === 'fidele' ? 'Sa fiche dit la vérité : c\'est tout ce qu\'on lui doit désormais.' : 'Sa fiche porte encore le motif qu\'on lui avait imposé.', 'Décédé'];
+    if (p.transferred) return [`<b>${p.d.name}</b> est arrivé${e} au Palier 40, en vie.`, r === 'fidele' ? 'Les médecins ont lu ton écriture, et ils n\'ont pas aimé ce qu\'elle racontait.' : `Ta fiche l'a suivi${e} : conforme, sans histoire. ${P} ne parlera que si on l'interroge.`, 'Évacué'];
+    if (r === 'corrige') return [`<b>${p.d.name}</b> est renvoyé${e} au poste avant la relève, apte, selon ta fiche.`, `${P} toussera encore au prochain tour, et personne n'aura de papier pour dire pourquoi.`, 'Renvoyé au travail'];
+    if (r === 'fidele') return [`<b>${p.d.name}</b> sort sur ses jambes, ta fiche honnête sous le bras.`, `${P} reviendra à la prochaine garde, avec le nom d'autres gens.`, 'Sauvé'];
+    return [`<b>${p.d.name}</b> sort de l'infirmerie, ni guéri${e} ni abandonné${e}.`, 'Sa fiche ne dit rien de plus que ce qu\'on voulait lire.', 'Libre'];
+  };
+  const next = [];
+  if (st.tobias) next.push('Tobias, remonté du 184ᵉ, te glisse un jeton de relève en ambre : il t\'ouvrira une porte, quand tu en auras besoin.');
+  else if (st.flags.tobias) next.push('Tobias n\'est jamais remonté. Le 184ᵉ a été muré à trois heures. Odile ne t\'en parle plus.');
+  if (st.dbl) next.push('Le double sous le plateau a quitté l\'infirmerie dans la poche d\'une aide-soignante du Palier 40. Quelqu\'un, quelque part, l\'a lu.');
+  if (transferred.length) next.push('À la garde suivante, un colis d\'inhalateurs neufs t\'attend sur le bureau, avec un mot : « de la part du Palier 40 ».');
+  if (st.phone === 'defy') next.push('Crane ne rappelle pas. Le lendemain, ton nom a disparu du roulement des gardes de nuit.');
+  else if (st.phone === 'obey' && cor >= 1) next.push('Crane rappelle : « Bon travail, infirmier. » Tu as du mal à raccrocher.');
+  else if (st.phone === 'stall') next.push('Crane rappelle à la relève. Tu as une réponse, mais pas celle qu\'il voulait.');
+  if (!next.length) next.push('Personne ne te rappelle. Le silence, ici, est une réponse comme une autre.');
+  $('#endIn').innerHTML = `<div class="when">02 h 00 · fin de la garde</div><h1>${E.t}</h1><p>${voss}</p><p>${E.p}</p>
+  <h3>Ceux de cette nuit</h3>${ps.map(p => { const f = fate(p); return `<div class="fate"><div class="polaroid" style="${faceVars(p.id)}"></div><div><div class="st">${f[2]} · registre : ${REG[st.regs[p.id]].tag}</div>${f[0]} ${f[1]}</div></div>`; }).join('')}
+  <h3>À la garde suivante</h3><ul class="next">${next.map(n => `<li>${n}</li>`).join('')}</ul>
+  <h3>Bilan</h3><p style="font-size:14px;color:var(--dim)">${alive}/3 vivants · ${fid} fiche${fid > 1 ? 's' : ''} fidèle${fid > 1 ? 's' : ''} · double : ${st.dbl ? 'oui' : 'non'} · Tobias : ${st.tobias ? 'remonté' : st.flags.tobias ? 'laissé en bas' : 'inconnu'} · Crane : ${{ obey: 'obéi', defy: 'défié', stall: 'temporisé' }[st.phone] || '—'}</p>
+  <div class="row"><button class="btn red" id="again">Rejouer la garde</button><button class="btn" id="toTitle">Retour au titre</button></div>`;
+  $('#again').onclick = newGame; $('#toTitle').onclick = () => show('title');
+}
+
+// ---------------------------------------------------------------------
+//  Branchements
+// ---------------------------------------------------------------------
+$('#startBtn').onclick = newGame;
+$('#endHour').onclick = endHour;
+$('#closeBtn').onclick = conclude;
+$('#phoneBtn').onclick = () => { SFX.click(); if (st.h === 2 && st.phone === null) openPhone(); else log('Le téléphone est silencieux. Personne n\'a rien à te dire pour l\'instant.', 's'); };
+$('#spotElev').onclick = () => { SFX.click(); if (st.h === 3 && st.cabin === null) openCabin(); else log('L\'ascenseur gronde dans sa cage. Rien ne se passe pour l\'instant.', 's'); };
+window.__nox = { get st() { return st; }, newGame, endHour, ask, care, bed, chooseCabin, conclude, DATA };
+})();
+</script>
+</body>
+</html>
