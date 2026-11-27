@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Light Cycle</title>
+<style>
+  :root { --cyan: #00e5ff; --orange: #ff5a1f; }
+  html, body { margin: 0; height: 100%; background: radial-gradient(ellipse at center, #06121c 0%, #02050a 70%); color: #bfefff; font-family: "Orbitron", "Segoe UI", system-ui, sans-serif; }
+  body { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; }
+  h1 { margin: 0; font-size: 22px; letter-spacing: .5em; font-weight: 700; text-transform: uppercase;
+       background: linear-gradient(90deg, var(--cyan), #fff 50%, var(--orange)); -webkit-background-clip: text; background-clip: text; color: transparent;
+       filter: drop-shadow(0 0 8px rgba(0,229,255,.5)); }
+  canvas { max-width: 96vw; height: auto; touch-action: none; border: 2px solid #0a2a38;
+           box-shadow: -10px 0 40px -10px var(--cyan), 10px 0 40px -10px var(--orange), inset 0 0 40px rgba(0,0,0,.8); }
+  p { margin: 0; font-size: 12px; letter-spacing: .15em; text-transform: uppercase; opacity: .6; text-align: center; padding: 0 16px; }
+</style>
+</head>
+<body>
+<h1>Light Cycle</h1>
+<canvas id="c" width="800" height="500"></canvas>
+<p>Flèches / WASD ou glisse le doigt · Espace : démarrer / pause · Premier à 3 manches</p>
+<script>
+const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+const CELL = 10, COLS = 80, ROWS = 50, W = cv.width, H = cv.height, WIN = 3, TICK = 70;
+const CYAN = '#00e5ff', ORANGE = '#ff5a1f';
+const DIRS = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
+const OPP = { up: 'down', down: 'up', left: 'right', right: 'left' };
+
+let grid, me, cpu, score = { me: 0, cpu: 0 }, state = 'ready', msg = 'Espace pour entrer dans la grille', acc = 0, last = 0, queued = null;
+
+function newRound() {
+  grid = Array.from({ length: ROWS }, () => new Array(COLS).fill(0));
+  me = { x: 12, y: ROWS / 2, dir: 'right', id: 1, color: CYAN, alive: true };
+  cpu = { x: COLS - 13, y: ROWS / 2, dir: 'left', id: 2, color: ORANGE, alive: true };
+  grid[me.y][me.x] = 1; grid[cpu.y][cpu.x] = 2;
+  queued = null;
+}
+newRound();
+
+function free(x, y) { return x >= 0 && y >= 0 && x < COLS && y < ROWS && grid[y][x] === 0; }
+function ahead(p, dir, n = 1) { const [dx, dy] = DIRS[dir]; return [p.x + dx * n, p.y + dy * n]; }
+function clearDist(p, dir, max = 30) {
+  let n = 0;
+  while (n < max) { const [x, y] = ahead(p, dir, n + 1); if (!free(x, y)) break; n++; }
+  return n;
+}
+
+function aiTurn() {
+  const dirs = Object.keys(DIRS).filter(d => d !== OPP[cpu.dir]);
+  const dist = Object.fromEntries(dirs.map(d => [d, clearDist(cpu, d)]));
+  const forward = dist[cpu.dir];
+  const danger = forward < 3;
+  if (danger || Math.random() < 0.03) {
+    const sorted = dirs.filter(d => d !== cpu.dir).sort((a, b) => dist[b] - dist[a]);
+    const best = sorted[0];
+    if (danger ? dist[best] > forward : dist[best] > 6) cpu.dir = best;
+  }
+}
+
+function step() {
+  if (queued && queued !== OPP[me.dir]) me.dir = queued;
+  queued = null;
+  aiTurn();
+  for (const p of [me, cpu]) { const [x, y] = ahead(p, p.dir); p.nx = x; p.ny = y; }
+  const same = me.nx === cpu.nx && me.ny === cpu.ny;
+  for (const p of [me, cpu]) if (!free(p.nx, p.ny) || same) p.alive = false;
+  for (const p of [me, cpu]) if (p.alive) { p.x = p.nx; p.y = p.ny; grid[p.y][p.x] = p.id; }
+  if (!me.alive || !cpu.alive) endRound();
+}
+
+function endRound() {
+  if (!me.alive && !cpu.alive) msg = 'Égalité';
+  else if (!me.alive) { score.cpu++; msg = 'Dérézzé'; }
+  else { score.me++; msg = 'Manche gagnée'; }
+  if (score.me >= WIN || score.cpu >= WIN) {
+    msg = (score.me >= WIN ? 'Victoire' : 'Défaite') + ' — Espace pour rejouer';
+    state = 'over';
+  } else { msg += ' — Espace pour continuer'; state = 'round'; }
+}
+
+function press() {
+  if (state === 'ready' || state === 'round') { newRound(); state = 'play'; }
+  else if (state === 'over') { score = { me: 0, cpu: 0 }; newRound(); state = 'play'; }
+  else if (state === 'play') { state = 'pause'; msg = 'Pause'; }
+  else if (state === 'pause') state = 'play';
+}
+
+const KEYS = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right', w: 'up', s: 'down', a: 'left', d: 'right', z: 'up', q: 'left' };
+addEventListener('keydown', e => {
+  if (e.key === ' ') { e.preventDefault(); press(); return; }
+  const d = KEYS[e.key];
+  if (d) { e.preventDefault(); if (state === 'play') queued = d; }
+});
+
+let tx = 0, ty = 0;
+cv.addEventListener('pointerdown', e => { tx = e.clientX; ty = e.clientY; if (state !== 'play') press(); });
+cv.addEventListener('pointermove', e => {
+  if (e.buttons === 0 && e.pointerType === 'mouse') return;
+  const dx = e.clientX - tx, dy = e.clientY - ty;
+  if (Math.max(Math.abs(dx), Math.abs(dy)) > 24 && state === 'play') {
+    queued = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up');
+    tx = e.clientX; ty = e.clientY;
+  }
+});
+
+function glow(c, b) { ctx.shadowColor = c; ctx.shadowBlur = b; }
+
+function draw() {
+  ctx.fillStyle = '#02070d'; ctx.fillRect(0, 0, W, H);
+  let g = ctx.createLinearGradient(0, 0, W, 0);
+  g.addColorStop(0, 'rgba(0,229,255,.10)'); g.addColorStop(.5, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(255,90,31,.10)');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  ctx.lineWidth = 1;
+  for (let x = 0; x <= W; x += 40) { ctx.strokeStyle = x < W/2 ? 'rgba(0,229,255,.12)' : 'rgba(255,90,31,.12)'; ctx.beginPath(); ctx.moveTo(x + .5, 0); ctx.lineTo(x + .5, H); ctx.stroke(); }
+  for (let y = 0; y <= H; y += 40) { ctx.strokeStyle = 'rgba(160,200,220,.08)'; ctx.beginPath(); ctx.moveTo(0, y + .5); ctx.lineTo(W, y + .5); ctx.stroke(); }
+
+  // traînées
+  for (const [p, color] of [[1, CYAN], [2, ORANGE]]) {
+    ctx.save(); glow(color, 14); ctx.fillStyle = color;
+    for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) if (grid[y][x] === p) ctx.fillRect(x * CELL + 1, y * CELL + 1, CELL - 2, CELL - 2);
+    ctx.restore();
+  }
+  // têtes
+  for (const p of [me, cpu]) {
+    ctx.save(); glow('#fff', 20); ctx.fillStyle = p.alive ? '#fff' : p.color;
+    ctx.fillRect(p.x * CELL - 1, p.y * CELL - 1, CELL + 2, CELL + 2); ctx.restore();
+  }
+  // murs
+  ctx.save(); let wg = ctx.createLinearGradient(0, 0, W, 0); wg.addColorStop(0, CYAN); wg.addColorStop(1, ORANGE);
+  ctx.fillStyle = wg; glow('#fff', 12);
+  ctx.fillRect(0, 0, W, 3); ctx.fillRect(0, H - 3, W, 3); ctx.fillRect(0, 0, 3, H); ctx.fillRect(W - 3, 0, 3, H); ctx.restore();
+
+  ctx.font = 'bold 34px "Orbitron", "Segoe UI", monospace'; ctx.textAlign = 'center';
+  ctx.save(); glow(CYAN, 14); ctx.fillStyle = CYAN; ctx.fillText(score.me, W/2 - 40, 44);
+  glow(ORANGE, 14); ctx.fillStyle = ORANGE; ctx.fillText(score.cpu, W/2 + 40, 44); ctx.restore();
+
+  if (state !== 'play') {
+    ctx.fillStyle = 'rgba(2,7,13,.78)'; ctx.fillRect(0, H/2 - 44, W, 88);
+    let bg = ctx.createLinearGradient(0, 0, W, 0); bg.addColorStop(0, CYAN); bg.addColorStop(1, ORANGE);
+    ctx.fillStyle = bg; ctx.fillRect(0, H/2 - 44, W, 2); ctx.fillRect(0, H/2 + 42, W, 2);
+    ctx.save(); glow('#fff', 10); ctx.fillStyle = '#fff'; ctx.font = '600 20px "Orbitron", "Segoe UI", sans-serif';
+    ctx.fillText(msg.toUpperCase(), W/2, H/2 + 7); ctx.restore();
+  }
+}
+
+function loop(t) {
+  const dt = Math.min(t - last, 200); last = t;
+  if (state === 'play') { acc += dt; while (acc >= TICK && state === 'play') { acc -= TICK; step(); } }
+  draw(); requestAnimationFrame(loop);
+}
+requestAnimationFrame(t => { last = t; loop(t); });
+</script>
+</body>
+</html>
